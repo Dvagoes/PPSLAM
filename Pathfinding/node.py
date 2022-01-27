@@ -38,7 +38,7 @@ class Node:
     def get_connections(self):
         return self.connections
 
-    def evaluate_vector(self, target):
+    def evaluate(self, target):
         # checks if any connected nodes (if not, it is the start node)
         if (self.connections.count > 0):
             connection = self.connections[0]

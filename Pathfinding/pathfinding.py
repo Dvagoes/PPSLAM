@@ -4,9 +4,9 @@ from Robot import movement, sensing
 
 
 # set target vector and start node
-target = (5,5) # will be provided as input later
+target = np.array([5,5]) # will be provided as input later
 current_node = Node()
-current_node.evaluate_vector(target)
+current_node.evaluate(target)
 node_list = []
 node_list.append(current_node)
 
@@ -54,7 +54,21 @@ def explore_node(node):
         #generate a vector
         vector = np.array([distance])
 
-        new_node = Node(vector=vector)
+        new_node = Node()
+        node.add_connection(node, vector)
+        new_node.evaluate(target)
+
+def move_to_node(tar_node):
+    tar_vector = tar_node.get_vector()
+    cur_vector = current_node.get_vector()
+    route_vector = tar_vector - cur_vector
+
+    # transform vector to bearing
+    # turn to face node
+    # move forwards to node
+
+    
+
 
 def calibrate_movement():
     # use the proximity sensor to calculate how much

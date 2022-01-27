@@ -2,7 +2,7 @@ import RPi.GPIO as GPIO
 import time
 
 
-#GPIO setup
+# GPIO setup
 GPIO.setmode(GPIO.BCM)
 
 GPIO_RB = 4

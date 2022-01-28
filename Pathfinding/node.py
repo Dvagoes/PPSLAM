@@ -55,7 +55,7 @@ class Node:
 class Connection:
 
     def __init__(self, node, vector):
-        self.node = node
+        self.node = Node(node)
         self.vector = vector
 
     def get_node(self):

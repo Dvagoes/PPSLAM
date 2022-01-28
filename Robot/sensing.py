@@ -2,7 +2,6 @@
 import RPi.GPIO as GPIO
 import time
 
-
 def get_distance():
     try:
         # GPIO setup

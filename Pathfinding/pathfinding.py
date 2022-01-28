@@ -1,6 +1,7 @@
 import numpy as np
 from node import Node
 from Robot import movement, sensing
+from sense_hat import SenseHat
 
 
 # set target vector and start node
@@ -9,6 +10,8 @@ current_node = Node()
 current_node.evaluate(target)
 node_list = []
 node_list.append(current_node)
+
+sense = SenseHat()
 
 
 def evaluate_path():
@@ -66,9 +69,21 @@ def move_to_node(tar_node):
     # transform vector to bearing
     # turn to face node
     # move forwards to node
-
     
+def bearing_to_vector(distance, bearing):
+    x = distance * np.sin(bearing)
+    y = distance * np.cos(bearing)
+    return np.array([x, y])
 
+def vector_to_bearing(vector):
+    x = vector[0]
+    y = vector[1]
+    return np.arctan((x/y))
+
+def vector_to_distance(vector):
+    x = vector[0]
+    y = vector[1]
+    return np.sqrt(np.square(x) + np.square(y))
 
 def calibrate_movement():
     # use the proximity sensor to calculate how much

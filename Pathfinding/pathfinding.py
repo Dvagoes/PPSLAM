@@ -1,7 +1,11 @@
 import numpy as np
-from node import Node
+import math
+import time
+from node import Node, Connection
 from Robot import movement, sensing
-from sense_hat import SenseHat
+from sense_hat import SenseHat, ACTION_PRESSED, ACTION_HELD, ACTION_RELEASED
+
+
 
 
 # set target vector and start node
@@ -11,7 +15,25 @@ current_node.evaluate(target)
 node_list = []
 node_list.append(current_node)
 
+# set up flag for checking if actively running
+active = False
+
+def begin_test(event):
+    global active
+    if event.action != ACTION_RELEASED:
+        if (not active):
+            move.move_forward()  # change to starting test run
+            active = True
+        else:
+            move.stop()
+            active = False
+
 sense = SenseHat()
+move = movement.Move()
+event = sense.stick.direction_middle = begin_test
+
+sense.get_orientation()
+sense.get_compass()
 
 
 def evaluate_path():
@@ -50,7 +72,7 @@ def explore_node(node):
     # add movement routine to spin on the spot,
     # stopping in increments to scan
     for i in range(12):
-        movement.turn_left(1)
+        move.turn_left()
         distance = sensing.get_distance()
         #calculate orientation
 
@@ -94,13 +116,43 @@ def calibrate_movement():
     f_speed, b_speed = 0
 
     dist_before = sensing.get_distance()
-    movement.move_forward(1)
+    move.move_forward(1)
     dist_after = sensing.get_distance()
 
     f_speed = (dist_before - dist_after)
 
     dist_before = sensing.get_distance()
-    movement.move_backward(1)
+    move.move_backward()
     dist_after = sensing.get_distance()
 
     b_speed = (dist_after - dist_before)
+
+    return f_speed, b_speed
+
+def move_to(distance):
+    current_distance = sensing.get_distance()
+    target_distance = current_distance - distance
+
+    if (target_distance < 0):
+        move.move_backward()
+    else:
+        move.move_forward()
+    
+    while (not math.isclose(current_distance, target_distance, abs_tol=1e-3)):
+        current_distance = sensing.get_distance()
+    else:
+        move.stop()
+
+def turn_to(bearing):
+    current_bearing = sense.get_compass()
+
+    if (bearing > current_bearing):
+        move.turn_right()
+    else:
+        move.turn_left()
+    
+    while (not math.isclose(current_bearing, bearing, abs_tol=1e-3)):
+        current_bearing = sense.get_compass()
+    else:
+        move.stop()
+

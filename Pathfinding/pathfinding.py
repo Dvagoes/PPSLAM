@@ -43,54 +43,101 @@ def evaluate_path():
     no_path = True
     searches = 0
 
-    while no_path:
-        searches += 1
-        check_node = Node()
-        # first, search for best connected node
-        # then, check against previous node branches
-        # finally, select most promising node
+    # first, search for best connected node
+    best = search_node(current_node)
+    if (best.is_target()):
+        return path
 
-        if (check_node.is_target()):
-            no_path = False
+def path_to_node(target_node):
+    global current_node
+    path = search_for_path(current_node, target_node)
+    for node in path:
+        if (check_los(current_node, target_node)):
+            move_to_node(target_node)
+            current_node = target_node
+            break
+        else:
+            move_to_node(node)
+            current_node = node
 
-    else:
-        print("route found in %s steps" %searches)
+def search_for_path(start_node, target_node):
+    path_from_start = []
+    path_from_target = []
+
+    # finds path from target node back to origin
+
+    previous = target_node.get_previous()
+    while (not previous.is_target(node_list[0].get_vector())):
+        path_from_target.append(previous)
+        previous = previous.get_previous()
+
+    # compares previous nodes to find last common node, then derives path
+
+    previous = start_node.get_previous()
+    while (not previous.is_target(node_list[0].get_vector())):
+        
+        for node in path_from_target:
+            if (previous.is_target(node.get_vector())):
+                index = path_from_target.index(node)
+                path = path_from_start + path_from_target[0::index]
+                return path
+            else:
+                path_from_start.append(previous)
+                previous = previous.get_previous()
+
+             
 
 def search_node(node):
     connections = node.get_connections()
-
-    best_score = 1000
-    best_node = Node()
+    # low scores are good, as it indicates lower distance
+    best_score = node.get_score()
+    best_node = node
     for connection in connections():
         if (connection.get_node().get_score() < best_score):
             best_score = connection.get_node().get_score()
             best_node = connection.get_node()
-    
     return best_node
-        
+
+def check_los(start_node, target_node):
+    #check LoS between current node and another node
+
+    move_vector = target_node.get_vector() - start_node.get_vector()
+    turn_to(vector_to_bearing(move_vector))
+    if (sensing.get_distance() >= vector_to_distance(move_vector)):
+        start_node.add_connection(target_node, move_vector)
+        target_node.add_connection(start_node, -move_vector)
+        return True
+    else:
+        return False
+
 def explore_node(node):
     # add movement routine to spin on the spot,
     # stopping in increments to scan
+    # could at later date use a more focused exploration
+    # range to optimise time and space complexity
+
     for i in range(12):
-        move.turn_left()
+        bearing =  30 * i
+        turn_to(bearing)
         distance = sensing.get_distance()
         #calculate orientation
 
         #generate a vector
-        vector = np.array([distance])
+        vector = bearing_to_vector(distance, bearing)
+        coord = node.get_vector() + vector
 
-        new_node = Node()
-        node.add_connection(node, vector)
+        new_node = Node(vector= coord)
+        node.add_connection(new_node, vector)
+        new_node.add_connection(node, -vector)
         new_node.evaluate(target)
+        node_list.append(new_node)
 
-def move_to_node(tar_node):
-    tar_vector = tar_node.get_vector()
-    cur_vector = current_node.get_vector()
-    route_vector = tar_vector - cur_vector
+def move_to_node(target_node):
+    move_vector = target_node.get_vector() - current_node.get_vector()
+    turn_to(vector_to_bearing(move_vector))
+    move_to(vector_to_distance(move_vector))
 
-    # transform vector to bearing
-    # turn to face node
-    # move forwards to node
+    print("moving along vector " + move_vector + " to reach " + target_node.get_vector())
     
 def bearing_to_vector(distance, bearing):
     x = distance * np.sin(bearing)
@@ -106,28 +153,6 @@ def vector_to_distance(vector):
     x = vector[0]
     y = vector[1]
     return np.sqrt(np.square(x) + np.square(y))
-
-def calibrate_movement():
-    # use the proximity sensor to calculate how much
-    # ground is covered in a second in all directions
-
-    # this allows for better inertial calculations
-
-    f_speed, b_speed = 0
-
-    dist_before = sensing.get_distance()
-    move.move_forward(1)
-    dist_after = sensing.get_distance()
-
-    f_speed = (dist_before - dist_after)
-
-    dist_before = sensing.get_distance()
-    move.move_backward()
-    dist_after = sensing.get_distance()
-
-    b_speed = (dist_after - dist_before)
-
-    return f_speed, b_speed
 
 def move_to(distance):
     current_distance = sensing.get_distance()

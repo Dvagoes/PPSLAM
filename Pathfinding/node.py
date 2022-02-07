@@ -1,5 +1,5 @@
 import numpy as np
-
+import math
 
 class Node:
     # class for defining nodes in the abstract vector map
@@ -38,24 +38,20 @@ class Node:
     def get_connections(self):
         return self.connections
 
+    def get_previous(self):
+        return self.connections[0].get_node()
+
     def evaluate(self, target):
-        # checks if any connected nodes (if not, it is the start node)
-        if (self.connections.count > 0):
-            connection = self.connections[0]
-            self.vector = connection.get_node().get_vector() + connection.get_vector()
-            
         self.score = np.linalg.norm(self.vector - target)
 
-    def is_target():
-        # helper method to check if target has been reached
-        # will add tolerances to account for innacuracies in movement
-        return True
+    def is_target(self, target):
+        return (math.isclose(self.vector[0], target[0], abs_tol= 1e-3) and math.isclose(self.vector[1], target[1], abs_tol= 1e-3))
 
 
 class Connection:
 
     def __init__(self, node, vector):
-        self.node = Node(node)
+        self.node = node
         self.vector = vector
 
     def get_node(self):

@@ -146,7 +146,7 @@ def explore_node(node):
         turn_to(bearing)
         distance = sensing.get_distance()
         
-        if (distance > 15):
+        if (distance > 10):
             # generate a vector
             vector = bearing_to_vector(distance, bearing)
             coord = node.get_vector() + vector

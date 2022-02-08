@@ -24,6 +24,9 @@ class Node:
     def isExplored(self):
         return self.explored
 
+    def setExplored(self):
+        self.explored = True
+
     def get_vector(self):
         return self.vector
     
@@ -42,10 +45,10 @@ class Node:
         return self.connections[0].get_node()
 
     def evaluate(self, target):
-        self.score = np.linalg.norm(self.vector - target)
+        self.score = np.linalg.norm(self.vector - target.vector)
 
     def is_target(self, target):
-        return (math.isclose(self.vector[0], target[0], abs_tol= 1e-3) and math.isclose(self.vector[1], target[1], abs_tol= 1e-3))
+        return (math.isclose(self.vector[0], target.vector[0], abs_tol= 1e-3) and math.isclose(self.vector[1], target.vector[1], abs_tol= 1e-3))
 
 
 class Connection:

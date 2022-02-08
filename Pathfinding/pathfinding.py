@@ -1,3 +1,4 @@
+from ast import Break
 import numpy as np
 import math
 import time
@@ -5,15 +6,13 @@ from node import Node, Connection
 from Robot import movement, sensing
 from sense_hat import SenseHat, ACTION_PRESSED, ACTION_HELD, ACTION_RELEASED
 
-
-
-
 # set target vector and start node
-target = np.array([5,5]) # will be provided as input later
+target = Node(vector=np.array([5,5])) # will be provided as input later
 current_node = Node()
 current_node.evaluate(target)
 node_list = []
 node_list.append(current_node)
+explored_list = []
 
 # set up flag for checking if actively running
 active = False
@@ -32,21 +31,46 @@ sense = SenseHat()
 move = movement.Move()
 event = sense.stick.direction_middle = begin_test
 
-sense.get_orientation()
-sense.get_compass()
-
-
 def evaluate_path():
     path = []
     path.append(current_node)
-
+    global node_list
+    global explored_list
+    global target
     no_path = True
     searches = 0
+    
+    while (no_path):
+        searches += 1
 
-    # first, search for best connected node
-    best = search_node(current_node)
-    if (best.is_target()):
-        return path
+        if (check_los(current_node, target)):
+            move_to_node(target)
+            no_path = False
+            break
+
+        # check for best connected unexplored node
+        if (not current_node.isExplored()):
+            explore_node(current_node)
+            current_node.setExplored()
+            explored_list.append(current_node)
+        
+        best_connected = search_node(current_node)
+
+        # search for best explored node
+        best_node = current_node
+        best_score = best_node.get_score()
+        for node in explored_list:
+            if (node.get_score() < best_score):
+                best_score = node.get_score()
+                best_node = node
+
+        if (best_connected.get_score() >  best_score):
+            move_to_node(best_connected)
+        else:
+            path_to_node(best_node)
+
+
+
 
 def path_to_node(target_node):
     global current_node
@@ -93,9 +117,10 @@ def search_node(node):
     best_score = node.get_score()
     best_node = node
     for connection in connections():
-        if (connection.get_node().get_score() < best_score):
-            best_score = connection.get_node().get_score()
-            best_node = connection.get_node()
+        if (not connection.get_node().isExplored()):
+            if (connection.get_node().get_score() < best_score):
+                best_score = connection.get_node().get_score()
+                best_node = connection.get_node()
     return best_node
 
 def check_los(start_node, target_node):
@@ -120,17 +145,18 @@ def explore_node(node):
         bearing =  30 * i
         turn_to(bearing)
         distance = sensing.get_distance()
-        #calculate orientation
+        
+        if (distance > 15):
+            # generate a vector
+            vector = bearing_to_vector(distance, bearing)
+            coord = node.get_vector() + vector
 
-        #generate a vector
-        vector = bearing_to_vector(distance, bearing)
-        coord = node.get_vector() + vector
-
-        new_node = Node(vector= coord)
-        node.add_connection(new_node, vector)
-        new_node.add_connection(node, -vector)
-        new_node.evaluate(target)
-        node_list.append(new_node)
+            # generate node and connections
+            new_node = Node(vector=coord)
+            node.add_connection(new_node, vector)
+            new_node.add_connection(node, -vector)
+            new_node.evaluate(target)
+            node_list.append(new_node)
 
 def move_to_node(target_node):
     move_vector = target_node.get_vector() - current_node.get_vector()
@@ -180,4 +206,4 @@ def turn_to(bearing):
         current_bearing = sense.get_compass()
     else:
         move.stop()
-
+    

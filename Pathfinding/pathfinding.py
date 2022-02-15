@@ -1,4 +1,5 @@
 from ast import Break
+from turtle import distance
 import numpy as np
 import math
 import time
@@ -69,9 +70,6 @@ def evaluate_path():
         else:
             path_to_node(best_node)
 
-
-
-
 def path_to_node(target_node):
     global current_node
     path = search_for_path(current_node, target_node)
@@ -107,9 +105,7 @@ def search_for_path(start_node, target_node):
                 return path
             else:
                 path_from_start.append(previous)
-                previous = previous.get_previous()
-
-             
+                previous = previous.get_previous()        
 
 def search_node(node):
     connections = node.get_connections()
@@ -144,19 +140,34 @@ def explore_node(node):
     for i in range(12):
         bearing =  30 * i
         turn_to(bearing)
-        distance = sensing.get_distance()
+        clearance = sensing.get_distance()
+
+        # create nodes along every 10cm of clearance
+
+        distance = 10
         
-        if (distance > 10):
+        while (distance < clearance):
             # generate a vector
             vector = bearing_to_vector(distance, bearing)
             coord = node.get_vector() + vector
 
             # generate node and connections
             new_node = Node(vector=coord)
-            node.add_connection(new_node, vector)
-            new_node.add_connection(node, -vector)
-            new_node.evaluate(target)
-            node_list.append(new_node)
+            new = True
+            for n in node_list:
+                if (new_node.is_target(n)):
+                    node.add_connection(n, vector)
+                    n.add_connection(node, -vector)
+                    new = False
+                    break
+            if (new):
+                node.add_connection(new_node, vector)
+                new_node.add_connection(node, -vector)
+                new_node.evaluate(target)
+                node_list.append(new_node)
+            
+            distance += 10
+            
 
 def move_to_node(target_node):
     move_vector = target_node.get_vector() - current_node.get_vector()

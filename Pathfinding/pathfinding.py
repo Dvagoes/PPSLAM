@@ -1,11 +1,13 @@
-from ast import Break
+#from ast import Break
 from turtle import distance
 import numpy as np
+import RPi.GPIO as GPIO
 import math
 import time
 from node import Node, Connection
-from Robot import movement, sensing
+import movement, sensing
 from sense_hat import SenseHat, ACTION_PRESSED, ACTION_HELD, ACTION_RELEASED
+from i2clibraries import i2c_hmc5883l
 
 # set target vector and start node
 target = Node(vector=np.array([5,5])) # will be provided as input later
@@ -14,30 +16,14 @@ current_node.evaluate(target)
 node_list = []
 node_list.append(current_node)
 explored_list = []
-
-# set up flag for checking if actively running
-active = False
-
-def begin_test(event):
-    global active
-    if event.action != ACTION_RELEASED:
-        if (not active):
-            move.move_forward()  # change to starting test run
-            active = True
-        else:
-            move.stop()
-            active = False
-
-sense = SenseHat()
 move = movement.Move()
-event = sense.stick.direction_middle = begin_test
 
-def evaluate_path():
+def evaluate_path(target_node):
     path = []
+    global current_node
     path.append(current_node)
     global node_list
     global explored_list
-    global target
     no_path = True
     searches = 0
     
@@ -45,7 +31,7 @@ def evaluate_path():
         searches += 1
 
         if (check_los(current_node, target)):
-            move_to_node(target)
+            move_to_node(target_node)
             no_path = False
             break
 
@@ -136,7 +122,8 @@ def explore_node(node):
     # stopping in increments to scan
     # could at later date use a more focused exploration
     # range to optimise time and space complexity
-
+    global node_list
+    
     for i in range(12):
         bearing =  30 * i
         turn_to(bearing)
@@ -176,9 +163,9 @@ def move_to_node(target_node):
 
     print("moving along vector " + move_vector + " to reach " + target_node.get_vector())
     
-def bearing_to_vector(distance, bearing):
-    x = distance * np.sin(bearing)
-    y = distance * np.cos(bearing)
+def bearing_to_vector(dist, bearing):
+    x = dist * np.sin(bearing)
+    y = dist * np.cos(bearing)
     return np.array([x, y])
 
 def vector_to_bearing(vector):
@@ -191,9 +178,10 @@ def vector_to_distance(vector):
     y = vector[1]
     return np.sqrt(np.square(x) + np.square(y))
 
-def move_to(distance):
+def move_to(dist):
+    global move
     current_distance = sensing.get_distance()
-    target_distance = current_distance - distance
+    target_distance = current_distance - dist
 
     if (target_distance < 0):
         move.move_backward()
@@ -201,20 +189,63 @@ def move_to(distance):
         move.move_forward()
     
     while (not math.isclose(current_distance, target_distance, abs_tol=1e-3)):
+        time.sleep(0.05) #time to settle sensor
         current_distance = sensing.get_distance()
+        target_distance = current_distance - dist
+        if (target_distance < 0):
+            move.move_backward()
+        else:
+            move.move_forward()
+        time.sleep(0.1)
+        move.stop()
+        
     else:
         move.stop()
 
 def turn_to(bearing):
-    current_bearing = sense.get_compass()
-
+    print ("Turning to: ", bearing)
+    current_bearing = get_bearing()
+    global move
     if (bearing > current_bearing):
         move.turn_right()
     else:
         move.turn_left()
     
-    while (not math.isclose(current_bearing, bearing, abs_tol=1e-3)):
-        current_bearing = sense.get_compass()
+    while (not math.isclose(current_bearing, bearing, abs_tol= 5)):
+        current_bearing = get_bearing()
+        if (bearing > current_bearing):
+            move.turn_right()
+        else:
+            move.turn_left()
+        time.sleep(0.005)
+        move.stop()
+        time.sleep(0.005)
     else:
         move.stop()
+
+def get_bearing():
+    global compass
+    (heading, minutes) = compass.getHeading()
+    print("Bearing: ", heading)
+    return heading
+
+def setup_compass():
+    global compass
+    compass.setContinuousMode()
+    compass.setDeclination(-0, 56)
+    # declination for aberdeen from magnetic-declination.com
+
+    print(compass)
+    turn_to(0)
+    get_bearing()
     
+
+
+sensing.get_distance()
+compass = i2c_hmc5883l.i2c_hmc5883l(1)
+try:
+    setup_compass()
+    evaluate_path(target)
+finally:
+    move.stop()
+    GPIO.cleanup()

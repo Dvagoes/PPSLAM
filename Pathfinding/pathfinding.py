@@ -46,7 +46,7 @@ def evaluate_path(target_node):
         # search for best explored node
         best_node = current_node
         best_score = best_node.get_score()
-        for node in explored_list:
+        for node in node_list:
             if (node.get_score() < best_score):
                 best_score = node.get_score()
                 best_node = node

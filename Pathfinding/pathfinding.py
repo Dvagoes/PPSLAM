@@ -10,7 +10,7 @@ from sense_hat import SenseHat, ACTION_PRESSED, ACTION_HELD, ACTION_RELEASED
 from i2clibraries import i2c_hmc5883l
 
 # set target vector and start node
-target = Node(vector=np.array([5,5])) # will be provided as input later
+target = Node(vector=np.array([25,16])) # will be provided as input later
 current_node = Node()
 current_node.evaluate(target)
 node_list = []
